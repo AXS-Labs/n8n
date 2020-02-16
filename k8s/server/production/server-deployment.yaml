@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: server
+  labels:
+    app: n8n-server
+    env: production
+spec:
+  replicas: 1
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: n8n-server
+      env: production
+  template:
+    metadata:
+      name: server
+      labels:
+        app: n8n-server
+        env: production
+    spec:
+      containers:
+      - name: server
+        image: index.docker.io/n8nio/n8n:0.53.0-ubuntu
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: server-environment
+        env:
+        - name: DB_MYSQLDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mysql-password
+              name: n8n-server-secrets
+        - name: N8N_BASIC_AUTH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: n8n-basic-auth-password
+              name: n8n-server-secrets
+        ports:
+          - containerPort: 5678
+        volumeMounts:
+        - name: n8n-sever-persistent-storage
+          mountPath: /root/.n8n
+          subPath: n8n-data
+      volumes:
+      - name: n8n-sever-persistent-storage
+        persistentVolumeClaim:
+          claimName: n8n-server-pvc
